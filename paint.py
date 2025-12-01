@@ -1,5 +1,6 @@
 import curses as c
 import time
+import PIL.Image
 PAD_HEIGHT = 30
 PAD_WIDTH = 86
 pairs = []
@@ -35,6 +36,17 @@ def color_pos(color: int,pad,char: str = " "):
     fieldColors[cursorY][cursorX] = color
     pad.addstr(cursorY,cursorX,char,c.color_pair(color))
 
+def save(colors,chars):
+    colormap = [(0,0,0),(0x80,0,0),(0,0x80,0),(0x80,0x80,0),(0,0,0x80),(0x80,0,0x80),(0xC0,0xC0,0xC0)]
+    img = PIL.Image.new("RGB",(len(chars[0]),len(chars)),"black")
+    imgPixels = img.load()
+    for x in range(img.size[0]):
+        for y in range(img.size[1]):
+            colorNum = colors[y][x]
+            if colorNum > 7:
+                colorNum -= 7
+            imgPixels[x,y] = colormap[colorNum]
+    img.show()
 
 def init(stdscr):
     global fieldChars, fieldColors
@@ -94,10 +106,12 @@ def main(stdscr):
             color_pos(12,pad)
         elif k == "h":
             color_pos(15,pad)
-        elif k == "b":
+        elif k == "j":
             color_pos(5,pad,"#")
         elif k == "p":
             stdscr.refresh()
+        elif k == "b":
+            save(fieldColors,fieldChars)
         pass
         pad_ref(pad)
         cursor_move(cursorY,cursorX,stdscr)
