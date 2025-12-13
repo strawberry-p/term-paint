@@ -2,10 +2,12 @@ import curses as c
 import time
 import PIL.Image
 import math
+import sys
 PAD_HEIGHT = 31
 PAD_WIDTH = 88
 X_MARGIN = 30
 Y_MARGIN = 10
+COLORFIX = [1,2,3,4,5,6,7]
 INFO_BG = 9
 xOffset = 0
 yOffset = 0
@@ -110,10 +112,12 @@ def updateInfo(stdscr: c.window):
     stdscr.addstr(lines,c.COLS-21,f"off x {xOffset}, y {yOffset}",c.color_pair(INFO_BG))
 
 def init(stdscr):
-    global fieldChars, fieldColors
+    global fieldChars, fieldColors, COLORFIX
     c.curs_set(1)
     c.start_color()
     stdscr.keypad(True)
+    if sys.platform == "win32":
+        COLORFIX = [4,2,6,1,5,3,7]
     fieldChars = [["" for x in range(PAD_WIDTH)] for y in range(PAD_HEIGHT)]
     fieldColors = [[0 for x in range(PAD_WIDTH)] for y in range(PAD_HEIGHT)]
 
@@ -122,16 +126,20 @@ def main(stdscr: c.window):
     pad = c.newpad(PAD_HEIGHT,PAD_WIDTH)
     cursorY = round(c.LINES/2)
     cursorX = round(c.COLS/2)
+    if cursorY >= PAD_HEIGHT:
+        cursorY = round(PAD_HEIGHT/2)
+    if cursorX >= PAD_WIDTH:
+        cursorX = round(PAD_WIDTH/2)
     lines = c.LINES-1
     cursor_move(cursorY,cursorX,stdscr)
     drawBool = False
     init(stdscr)
     for i in range(7):
-        pairs.append(c.init_pair(i+1,i+1,0))
-        debugPairs.append((i+1,i+1,0))
-    for i in range(8):
-        pairs.append(c.init_pair(8+i,0,i+1))
-        debugPairs.append((8+i,0,i+1))
+        pairs.append(c.init_pair(i+1,COLORFIX[i],0))
+        debugPairs.append((i+1,COLORFIX[i],0))
+    for i in range(7):
+        pairs.append(c.init_pair(8+i,0,COLORFIX[i]))
+        debugPairs.append((8+i,0,COLORFIX[i]))
     for i in range(min(PAD_WIDTH,c.COLS)-1):
         try:
             pass
