@@ -3,6 +3,8 @@ import time
 import PIL.Image
 import math
 import sys
+import argparse as arg
+import os
 PAD_HEIGHT = 31
 PAD_WIDTH = 88
 X_MARGIN = 30
@@ -11,7 +13,7 @@ COLORFIX = [1,2,3,4,5,6,7]
 INFO_BG = 9
 xOffset = 0
 yOffset = 0
-filename = "[unnamed]"
+filename = "unnamed.png"
 pairs = []
 debugPairs = []
 fieldChars = [] #list[list[str]]
@@ -22,6 +24,9 @@ cursorDown = True
 paintColor = 1
 reverseColor = 8
 currentColor = 0
+statusBarNext = ""
+statusBarCurrent = ""
+infobarPos = False
 
 def pad_ref(pad: c.window):
     pad.noutrefresh(yOffset,xOffset,0,0,min(PAD_HEIGHT-1,lines),min(PAD_WIDTH,c.COLS)-1)
@@ -84,7 +89,7 @@ def color_pos(color: int,pad,char: str = " "):
     fieldColors[yOffset+cursorY][xOffset+cursorX] = color
     pad.addstr(yOffset+cursorY,xOffset+cursorX,char,c.color_pair(color))
 
-def save(colors,chars):
+def save(colors,chars,doSave=False):
     #colormap = [(0,0,0),(0xff,0,0),(0,0xff,0),(0xff,0xff,0),(0,0,0xff),(0xff,0,0xff),(0,0xFF,0xFF),(0xC0,0xC0,0xC0)]
     colormap = [
         (12, 12, 12),      # Black
@@ -106,13 +111,43 @@ def save(colors,chars):
             if colorNum >= len(colormap):
                 colorNum = -1
             imgPixels[x,y] = colormap[colorNum] #type: ignore
-    img.show()
-
+    if doSave:
+        img.save(filename)
+    else:
+        img.show()
+def refresh_infobar(stdscr):
+    for x in range(c.COLS-1):
+        stdscr.addstr(lines,x," ",c.color_pair(INFO_BG))
 def updateInfo(stdscr: c.window):
+    global statusBarCurrent
     stdscr.addstr(lines,c.COLS-21,f"off x {xOffset}, y {yOffset}",c.color_pair(INFO_BG))
+    if statusBarCurrent != statusBarNext:
+        stdscr.addstr(lines,min(c.COLS-len(statusBarNext)-1,38),statusBarNext,c.color_pair(INFO_BG))
+        statusBarCurrent = statusBarNext
+    else:
+        stdscr.addstr(lines,min(c.COLS-len(statusBarNext)-1,38),statusBarNext,c.color_pair(INFO_BG))
+    stdscr.addstr(lines,24,filename,c.color_pair(INFO_BG))
+    if infobarPos:
+        stdscr.addstr(lines,7,f"x {xOffset+cursorX}, y {yOffset+cursorY}",c.color_pair(INFO_BG))
 
 def init(stdscr):
-    global fieldChars, fieldColors, COLORFIX
+    global fieldChars, fieldColors, COLORFIX, filename, PAD_HEIGHT, PAD_WIDTH,statusBarNext,infobarPos
+    parser = arg.ArgumentParser()
+    parser.add_argument("-n","--filename",type=str,help="This is the filename your image will be saved as",required=False)
+    parser.add_argument("-y","--height",type=int,default=31,help="Height of the image canvas",required=False)
+    parser.add_argument("-x","--width",type=int,default=88,help="Width of the image canvas",required=False)
+    parser.add_argument("-p","--pos",action="store_true",help="Display cursor position relative to image on the infobar",required=False)
+    args = parser.parse_args()
+    if args.pos:
+        infobarPos = True
+    if (args.filename != None) and args.filename != "":
+        if (args.filename in os.listdir()) or (args.filename+".png" in os.listdir()):
+            statusBarNext = f"{args.filename} exists, but it wasn't loaded"
+            stdscr.addstr(lines,min(c.COLS-len(statusBarNext)-1,38),statusBarNext,c.color_pair(INFO_BG))
+        if "." in args.filename:
+            filename = args.filename
+        else:
+            filename = args.filename+".png"
     c.curs_set(1)
     c.start_color()
     stdscr.keypad(True)
@@ -122,7 +157,7 @@ def init(stdscr):
     fieldColors = [[0 for x in range(PAD_WIDTH)] for y in range(PAD_HEIGHT)]
 
 def main(stdscr: c.window):
-    global cursorX,cursorY, currentColor, lines
+    global cursorX,cursorY, currentColor, lines,statusBarNext
     pad = c.newpad(PAD_HEIGHT,PAD_WIDTH)
     cursorY = round(c.LINES/2)
     cursorX = round(c.COLS/2)
@@ -135,11 +170,15 @@ def main(stdscr: c.window):
     drawBool = False
     init(stdscr)
     for i in range(7):
-        pairs.append(c.init_pair(i+1,COLORFIX[i],0))
-        debugPairs.append((i+1,COLORFIX[i],0))
+        pairs.append(c.init_pair(i+1,8+COLORFIX[i],0))
+        debugPairs.append((i+1,8+COLORFIX[i],0))
     for i in range(7):
-        pairs.append(c.init_pair(8+i,0,COLORFIX[i]))
-        debugPairs.append((8+i,0,COLORFIX[i]))
+        if i == 2:
+            colorReg2 = 0
+        else:
+            colorReg2 = 1
+        pairs.append(c.init_pair(8+i,0,8*colorReg2+COLORFIX[i]))
+        debugPairs.append((8+i,0,8*colorReg2+COLORFIX[i]))
     for i in range(min(PAD_WIDTH,c.COLS)-1):
         try:
             pass
@@ -147,7 +186,7 @@ def main(stdscr: c.window):
         except Exception:
             pass
     stdscr.refresh()
-    time.sleep(1)
+    time.sleep(0.1)
     pad_ref(pad)
     if debugPairBool:
         for i in range(128-8):
@@ -159,8 +198,8 @@ def main(stdscr: c.window):
             for x in range(0, min(c.COLS-1,PAD_WIDTH-1)):
                 pad.addstr(y,x, 'a',c.color_pair(16+round((3*x) % 255)))
     pad_ref(pad)
-    for x in range(c.COLS-1):
-        stdscr.addstr(lines,x," ",c.color_pair(INFO_BG))
+    refresh_infobar(stdscr)
+    updateInfo(stdscr)
     cursor_move(cursorY,cursorX,stdscr)
     pad_ref(pad)
     adjColorSet = 1
@@ -199,6 +238,8 @@ def main(stdscr: c.window):
             pass
         elif k == "b":
             save(fieldColors,fieldChars)
+        elif k == "x":
+            save(fieldColors,fieldChars,doSave=True)
         elif k == "v":
             colorReg = 0
         elif k == "1":
@@ -230,12 +271,13 @@ def main(stdscr: c.window):
             lastColor = currentColor
             color_pos(currentColor,pad)
             colorReg = 1
-        stdscr.addstr(lines,9," ",c.color_pair(0))
-        stdscr.addstr(lines,11," ",c.color_pair(currentColor))
-        stdscr.addstr(lines,12," ",c.color_pair(currentColor))
-        stdscr.addstr(lines,10,str(currentColor),c.color_pair(currentColor))
-        stdscr.addstr(lines,13," ",c.color_pair(0))
+        refresh_infobar(stdscr)
         updateInfo(stdscr)
+        #stdscr.addstr(lines,0," ",c.color_pair(0))
+        stdscr.addstr(lines,1," ",c.color_pair(currentColor))
+        stdscr.addstr(lines,2," ",c.color_pair(currentColor))
+        stdscr.addstr(lines,0,str(currentColor),c.color_pair(currentColor))
+        stdscr.addstr(lines,3," ",c.color_pair(0))
         pad_ref(pad)
         stdscr.move(cursorY,cursorX)
         stdscr.noutrefresh()
