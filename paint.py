@@ -5,6 +5,7 @@ import math
 import sys
 import argparse as arg
 import os
+from typing import Annotated
 PAD_HEIGHT = 31
 PAD_WIDTH = 88
 X_MARGIN = 30
@@ -27,6 +28,16 @@ currentColor = 0
 statusBarNext = ""
 statusBarCurrent = ""
 infobarPos = False
+colormap = [
+        (12, 12, 12),      # Black
+        (197, 15, 31),     # Red
+        (19, 161, 14),     # Green
+        (193, 156, 0),     # Yellow
+        (0, 55, 218),      # Blue
+        (136, 23, 152),    # Magenta
+        (58, 150, 221),    # Cyan
+        (204, 204, 204),   # White/Gray
+    ]
 
 def pad_ref(pad: c.window):
     pad.noutrefresh(yOffset,xOffset,0,0,min(PAD_HEIGHT-1,lines),min(PAD_WIDTH,c.COLS)-1)
@@ -84,23 +95,36 @@ def relMove(y,x,stdscr,pad = None,doColor=False,doRefresh=True):
     stdscr.move(nextY,nextX)
     stdscr.refresh()
 
+def round_color(r: int,g: int,b: int,colormap: list) -> Annotated[int,"Index in colormap"]:
+    dist_linear = []
+    dist_quadratic = []
+    for color in colormap:
+        dr = abs(color[0]-r)
+        dg = abs(color[1]-g)
+        db = abs(color[2]-b)
+        dist_linear.append(round((dr+dg+db)/3,2))
+        dist_quadratic.append(round(math.sqrt((dr**2+dg**2+db**2)/9),2))
+        print(f"rounding {r},{g},{b} against {color}: linear {dist_linear[-1]} quadratic {dist_quadratic[-1]}")
+    dist_sorted = sorted(dist_linear)
+    res = dist_linear.index(dist_sorted[0])
+    if False:
+        print(f"linear {dist_linear}")
+        print(f"quadratic {dist_quadratic}")
+        print(dist_sorted)
+    print(f"matched {r},{g},{b} to {colormap[res]}")
+    return res
+
 def color_pos(color: int,pad,char: str = " "):
     fieldChars[yOffset+cursorY][xOffset+cursorX] = char
     fieldColors[yOffset+cursorY][xOffset+cursorX] = color
     pad.addstr(yOffset+cursorY,xOffset+cursorX,char,c.color_pair(color))
 
+def load_file(pad: c.window,path: str):
+    img = PIL.Image.open(path)
+
+
 def save(colors,chars,doSave=False):
     #colormap = [(0,0,0),(0xff,0,0),(0,0xff,0),(0xff,0xff,0),(0,0,0xff),(0xff,0,0xff),(0,0xFF,0xFF),(0xC0,0xC0,0xC0)]
-    colormap = [
-        (12, 12, 12),      # Black
-        (197, 15, 31),     # Red
-        (19, 161, 14),     # Green
-        (193, 156, 0),     # Yellow
-        (0, 55, 218),      # Blue
-        (136, 23, 152),    # Magenta
-        (58, 150, 221),    # Cyan
-        (204, 204, 204),   # White/Gray
-    ]
     img = PIL.Image.new("RGB",(len(chars[0]),len(chars)),"black")
     imgPixels = img.load()
     for x in range(img.size[0]):
@@ -283,10 +307,10 @@ def main(stdscr: c.window):
         stdscr.noutrefresh()
         c.doupdate()
     time.sleep(1)
-
-c.wrapper(main)
+if __name__ == "__main__" or False:
+    c.wrapper(main)
 
 if debugPairBool or debug16Pair:
     for i in range(math.floor(len(debugPairs)/2)):
         print(f"{debugPairs[2*i]}    {debugPairs[2*i+1]}")
-    print(f"last {debugPairs[-1]}")
+    #print(f"last {debugPairs[-1]}")
