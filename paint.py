@@ -38,7 +38,7 @@ colormap = [
         (58, 150, 221),    # Cyan
         (204, 204, 204),   # White/Gray
     ]
-
+colorPairDark = True
 def pad_ref(pad: c.window):
     pad.noutrefresh(yOffset,xOffset,0,0,min(PAD_HEIGHT-1,lines),min(PAD_WIDTH,c.COLS)-1)
 def cursor_move(y,x,stdscr):
@@ -104,7 +104,7 @@ def round_color(r: int,g: int,b: int,colormap: list) -> Annotated[int,"Index in 
         db = abs(color[2]-b)
         dist_linear.append(round((dr+dg+db)/3,2))
         dist_quadratic.append(round(math.sqrt((dr**2+dg**2+db**2)/9),2))
-        print(f"rounding {r},{g},{b} against {color}: linear {dist_linear[-1]} quadratic {dist_quadratic[-1]}")
+        #print(f"rounding {r},{g},{b} against {color}: linear {dist_linear[-1]} quadratic {dist_quadratic[-1]}")
     dist_sorted = sorted(dist_linear)
     res = dist_linear.index(dist_sorted[0])
     if False:
@@ -119,11 +119,31 @@ def color_pos(color: int,pad,char: str = " "):
     fieldColors[yOffset+cursorY][xOffset+cursorX] = color
     pad.addstr(yOffset+cursorY,xOffset+cursorX,char,c.color_pair(color))
 
-def load_file(pad: c.window,path: str):
+def load_file(path: str):
+    global fieldColors,fieldChars
     img = PIL.Image.open(path)
+    imgPixels = img.load()
+    color_cache = {}
+    fieldChars = [["" for x in range(img.size[0])] for y in range(img.size[1])]
+    fieldColors = [[0 for x in range(img.size[0])] for y in range(img.size[1])]
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    pad = c.newpad(img.size[1]+1,img.size[0]+1)
+    for x in range(img.size[0]):
+        for y in range(img.size[1]):
+            clr = imgPixels[x,y] #type: ignore
+            cached = color_cache.get(str(clr),-1)
+            if cached < 0:
+                cached = round_color(clr[0],clr[1],clr[2],colormap)
+                color_cache[str(clr)] = cached
+            if cached > 0:
+                cached += 7
+            fieldColors[y][x] = cached
+            pad.addstr(y,x," ",c.color_pair(cached))
+    return((img.size[1]+1,img.size[0]+1,pad))
 
 
-def save(colors,chars,doSave=False):
+def save_array(colors,chars,doSave=False):
     #colormap = [(0,0,0),(0xff,0,0),(0,0xff,0),(0xff,0xff,0),(0,0,0xff),(0xff,0,0xff),(0,0xFF,0xFF),(0xC0,0xC0,0xC0)]
     img = PIL.Image.new("RGB",(len(chars[0]),len(chars)),"black")
     imgPixels = img.load()
@@ -139,6 +159,8 @@ def save(colors,chars,doSave=False):
         img.save(filename)
     else:
         img.show()
+
+
 def refresh_infobar(stdscr):
     for x in range(c.COLS-1):
         stdscr.addstr(lines,x," ",c.color_pair(INFO_BG))
@@ -155,20 +177,26 @@ def updateInfo(stdscr: c.window):
         stdscr.addstr(lines,7,f"x {xOffset+cursorX}, y {yOffset+cursorY}",c.color_pair(INFO_BG))
 
 def init(stdscr):
-    global fieldChars, fieldColors, COLORFIX, filename, PAD_HEIGHT, PAD_WIDTH,statusBarNext,infobarPos
+    global fieldChars, fieldColors, COLORFIX, filename, PAD_HEIGHT, PAD_WIDTH
+    global statusBarNext, infobarPos, colorPairDark
     parser = arg.ArgumentParser()
     parser.add_argument("-n","--filename",type=str,help="This is the filename your image will be saved as",required=False)
     parser.add_argument("-y","--height",type=int,default=31,help="Height of the image canvas",required=False)
     parser.add_argument("-x","--width",type=int,default=88,help="Width of the image canvas",required=False)
     parser.add_argument("-p","--pos",action="store_true",help="Display cursor position relative to image on the infobar",required=False)
+    parser.add_argument("-l","--load",action="store_true",help="Load the image with the specified filename")
+    parser.add_argument("-c","--change-color",action="store_true",help="Use a brighter color for rendering")
     args = parser.parse_args()
     if args.pos:
         infobarPos = True
+    colorPairDark = not args.change_color
+    if (args.filename == None or args.filename == "") and args.load:
+        raise ValueError("file to load not provided")
     if (args.filename != None) and args.filename != "":
         if (args.filename in os.listdir()) or (args.filename+".png" in os.listdir()):
             statusBarNext = f"{args.filename} exists, but it wasn't loaded"
             stdscr.addstr(lines,min(c.COLS-len(statusBarNext)-1,38),statusBarNext,c.color_pair(INFO_BG))
-        if "." in args.filename:
+        if "." in args.filename or args.load: #ensure the provided filename is loaded
             filename = args.filename
         else:
             filename = args.filename+".png"
@@ -177,30 +205,38 @@ def init(stdscr):
     stdscr.keypad(True)
     if sys.platform == "win32":
         COLORFIX = [4,2,6,1,5,3,7]
-    fieldChars = [["" for x in range(PAD_WIDTH)] for y in range(PAD_HEIGHT)]
-    fieldColors = [[0 for x in range(PAD_WIDTH)] for y in range(PAD_HEIGHT)]
+    if args.load:
+        PAD_HEIGHT,PAD_WIDTH,pad = load_file(filename)
+    else:
+        pad = c.newpad(PAD_HEIGHT,PAD_WIDTH)
+        fieldChars = [["" for x in range(PAD_WIDTH)] for y in range(PAD_HEIGHT)]
+        fieldColors = [[0 for x in range(PAD_WIDTH)] for y in range(PAD_HEIGHT)]
+    return pad
 
 def main(stdscr: c.window):
     global cursorX,cursorY, currentColor, lines,statusBarNext
-    pad = c.newpad(PAD_HEIGHT,PAD_WIDTH)
     cursorY = round(c.LINES/2)
     cursorX = round(c.COLS/2)
+    lines = c.LINES-1
+    cursor_move(cursorY,cursorX,stdscr)
+    drawBool = False
+    pad = init(stdscr)
     if cursorY >= PAD_HEIGHT:
         cursorY = round(PAD_HEIGHT/2)
     if cursorX >= PAD_WIDTH:
         cursorX = round(PAD_WIDTH/2)
-    lines = c.LINES-1
-    cursor_move(cursorY,cursorX,stdscr)
-    drawBool = False
-    init(stdscr)
     for i in range(7):
         pairs.append(c.init_pair(i+1,8+COLORFIX[i],0))
         debugPairs.append((i+1,8+COLORFIX[i],0))
+    colorReg2 = 1
     for i in range(7):
         if i == 2:
             colorReg2 = 0
         else:
             colorReg2 = 1
+        if colorPairDark:
+            colorReg2 = 0
+        print(f"bright color {i} has CR2 {colorReg2}")
         pairs.append(c.init_pair(8+i,0,8*colorReg2+COLORFIX[i]))
         debugPairs.append((8+i,0,8*colorReg2+COLORFIX[i]))
     for i in range(min(PAD_WIDTH,c.COLS)-1):
@@ -261,9 +297,9 @@ def main(stdscr: c.window):
         elif k == "l":
             pass
         elif k == "b":
-            save(fieldColors,fieldChars)
+            save_array(fieldColors,fieldChars)
         elif k == "x":
-            save(fieldColors,fieldChars,doSave=True)
+            save_array(fieldColors,fieldChars,doSave=True)
         elif k == "v":
             colorReg = 0
         elif k == "1":
