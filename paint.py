@@ -21,7 +21,8 @@ fieldChars = [] #list[list[str]]
 fieldColors = [] #list[list[int]]
 debugPairBool = False
 debug16Pair = True
-cursorDown = True
+drawBool = True
+unsavedContent = False
 paintColor = 1
 reverseColor = 8
 currentColor = 0
@@ -115,6 +116,8 @@ def round_color(r: int,g: int,b: int,colormap: list) -> Annotated[int,"Index in 
     return res
 
 def color_pos(color: int,pad,char: str = " "):
+    global unsavedContent
+    unsavedContent = True
     fieldChars[yOffset+cursorY][xOffset+cursorX] = char
     fieldColors[yOffset+cursorY][xOffset+cursorX] = color
     pad.addstr(yOffset+cursorY,xOffset+cursorX,char,c.color_pair(color))
@@ -164,17 +167,26 @@ def save_array(colors,chars,doSave=False):
 def refresh_infobar(stdscr):
     for x in range(c.COLS-1):
         stdscr.addstr(lines,x," ",c.color_pair(INFO_BG))
+
 def updateInfo(stdscr: c.window):
     global statusBarCurrent
     stdscr.addstr(lines,c.COLS-21,f"off x {xOffset}, y {yOffset}",c.color_pair(INFO_BG))
     if statusBarCurrent != statusBarNext:
-        stdscr.addstr(lines,min(c.COLS-len(statusBarNext)-1,38),statusBarNext,c.color_pair(INFO_BG))
+        stdscr.addstr(lines,min(c.COLS-len(statusBarNext)-1,44),statusBarNext,c.color_pair(INFO_BG))
         statusBarCurrent = statusBarNext
     else:
-        stdscr.addstr(lines,min(c.COLS-len(statusBarNext)-1,38),statusBarNext,c.color_pair(INFO_BG))
-    stdscr.addstr(lines,24,filename,c.color_pair(INFO_BG))
+        stdscr.addstr(lines,min(c.COLS-len(statusBarNext)-1,44),statusBarNext,c.color_pair(INFO_BG))
+    if unsavedContent:
+        a = "*"
+    else:
+        a = ""
+    stdscr.addstr(lines,27,filename+a,c.color_pair(INFO_BG))
     if infobarPos:
         stdscr.addstr(lines,7,f"x {xOffset+cursorX}, y {yOffset+cursorY}",c.color_pair(INFO_BG))
+    if drawBool:
+        stdscr.addstr(lines,23,"%",c.color_pair(INFO_BG))
+    else:
+        stdscr.addstr(lines,23,"X",c.color_pair(INFO_BG))
 
 def init(stdscr):
     global fieldChars, fieldColors, COLORFIX, filename, PAD_HEIGHT, PAD_WIDTH
@@ -214,7 +226,8 @@ def init(stdscr):
     return pad
 
 def main(stdscr: c.window):
-    global cursorX,cursorY, currentColor, lines,statusBarNext
+    global cursorX,cursorY, currentColor, lines, statusBarNext, drawBool
+    global unsavedContent
     cursorY = round(c.LINES/2)
     cursorX = round(c.COLS/2)
     lines = c.LINES-1
@@ -236,7 +249,7 @@ def main(stdscr: c.window):
             colorReg2 = 1
         if colorPairDark:
             colorReg2 = 0
-        print(f"bright color {i} has CR2 {colorReg2}")
+        #print(f"bright color {i} has CR2 {colorReg2}")
         pairs.append(c.init_pair(8+i,0,8*colorReg2+COLORFIX[i]))
         debugPairs.append((8+i,0,8*colorReg2+COLORFIX[i]))
     for i in range(min(PAD_WIDTH,c.COLS)-1):
@@ -272,7 +285,7 @@ def main(stdscr: c.window):
         stdscr.addstr(lines,c.COLS-21-7,k,c.color_pair(INFO_BG))
         if k == "q" or k == "Q":
             break
-        if k in "wasd":
+        if (k in "wasd" or k in [c.KEY_UP,c.KEY_DOWN,c.KEY_LEFT,c.KEY_RIGHT]) and drawBool:
             color_pos(currentColor,pad)
         if k == c.KEY_UP or k == "w":
             relMove(-1,0,stdscr,pad,drawBool)
@@ -300,6 +313,7 @@ def main(stdscr: c.window):
             save_array(fieldColors,fieldChars)
         elif k == "x":
             save_array(fieldColors,fieldChars,doSave=True)
+            unsavedContent = False
         elif k == "v":
             colorReg = 0
         elif k == "1":
@@ -329,7 +343,8 @@ def main(stdscr: c.window):
         pass
         if lastColor != currentColor:
             lastColor = currentColor
-            color_pos(currentColor,pad)
+            if drawBool:
+                color_pos(currentColor,pad)
             colorReg = 1
         refresh_infobar(stdscr)
         updateInfo(stdscr)
