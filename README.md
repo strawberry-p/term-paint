@@ -15,3 +15,20 @@ This is a CLI tool for drawing images in your terminal with keyboard controls. F
 - Q to exit the program without saving any changes
 
 ## Installation
+
+From [PyPI](https://pypi.org/project/term-paint/):
+
+- `pip install term-paint` or `pipx install term-paint` or `uvx install term-paint`
+- `term-paint [OPTIONS]`
+
+From wheel files:
+
+- Download the wheel files from the release and place them into a new directory
+- `uv install .`
+- `term-paint [OPTIONS]`
+
+From the repo:
+
+- `git clone https://github.com/strawberry-p/term-paint.git`
+- `cd term-paint`
+- `py paint.py [OPTIONS]`
