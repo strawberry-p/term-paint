@@ -5,7 +5,6 @@ import math
 import sys
 import argparse as arg
 import os
-from typing import Annotated
 PAD_HEIGHT = 31
 PAD_WIDTH = 88
 X_MARGIN = 30
@@ -16,7 +15,7 @@ xOffset = 0
 yOffset = 0
 rect_y = -1 #starting position
 rect_x = -1
-rectPreviousColor = [0,0,0,0] #type: Annotated[list,"rx,ry -> x,ry -> x,y -> rx,y corners"]
+rectPreviousColor = [0,0,0,0] #type: list
 filename = "unnamed.png"
 pairs = []
 debugPairs = []
@@ -99,7 +98,7 @@ def relMove(y,x,stdscr,pad = None,doColor=False,doRefresh=True):
     stdscr.move(nextY,nextX)
     stdscr.refresh()
 
-def round_color(r: int,g: int,b: int,colormap: list) -> Annotated[int,"Index in colormap"]:
+def round_color(r: int,g: int,b: int,colormap: list) -> int:
     dist_linear = []
     dist_quadratic = []
     for color in colormap:

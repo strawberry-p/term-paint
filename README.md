@@ -27,7 +27,7 @@ This is a CLI tool for drawing images in your terminal with keyboard controls. F
 
 From [PyPI](https://pypi.org/project/term-paint/):
 
-- `pip install term-paint` or `pipx install term-paint` or `uvx install term-paint`
+- `pip install term-paint` or `pipx install term-paint` or `uv tool install term-paint`
 - `term-paint [OPTIONS]`
 
 From wheel files:
