@@ -14,6 +14,8 @@ COLORFIX = [1,2,3,4,5,6,7]
 INFO_BG = 9
 xOffset = 0
 yOffset = 0
+rect_y = -1
+rect_x = -1
 filename = "unnamed.png"
 pairs = []
 debugPairs = []
@@ -143,7 +145,7 @@ def load_file(path: str):
                 cached += 7
             fieldColors[y][x] = cached
             pad.addstr(y,x," ",c.color_pair(cached))
-    return((img.size[1]+1,img.size[0]+1,pad))
+    return((img.size[1],img.size[0],pad))
 
 
 def save_array(colors,chars,doSave=False):
@@ -223,6 +225,7 @@ def init(stdscr):
         pad = c.newpad(PAD_HEIGHT,PAD_WIDTH)
         fieldChars = [["" for x in range(PAD_WIDTH)] for y in range(PAD_HEIGHT)]
         fieldColors = [[0 for x in range(PAD_WIDTH)] for y in range(PAD_HEIGHT)]
+    print(f"loading mode {args.load} width {PAD_WIDTH} height {PAD_HEIGHT}")
     return pad
 
 def main(stdscr: c.window):
