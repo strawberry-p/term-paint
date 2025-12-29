@@ -234,14 +234,14 @@ wheels = [
 
 [[package]]
 name = "term-paint"
-version = "1.0.0"
+version = "1.0.1"
 source = { virtual = "." }
 dependencies = [
     { name = "argparse" },
     { name = "pillow", version = "11.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pillow", version = "12.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "typing" },
-    { name = "windows-curses" },
+    { name = "windows-curses", marker = "sys_platform == 'win32'" },
 ]
 
 [package.metadata]
@@ -249,7 +249,7 @@ requires-dist = [
     { name = "argparse", specifier = ">=1.4.0" },
     { name = "pillow", specifier = ">=11.3.0" },
     { name = "typing", specifier = ">=3.10.0.0" },
-    { name = "windows-curses", specifier = ">=2.4.1" },
+    { name = "windows-curses", marker = "sys_platform == 'win32'", specifier = ">=2.4.1" },
 ]
 
 [[package]]
