@@ -14,8 +14,9 @@ COLORFIX = [1,2,3,4,5,6,7]
 INFO_BG = 9
 xOffset = 0
 yOffset = 0
-rect_y = -1
+rect_y = -1 #starting position
 rect_x = -1
+rectPreviousColor = [0,0,0,0] #type: Annotated[list,"rx,ry -> x,ry -> x,y -> rx,y corners"]
 filename = "unnamed.png"
 pairs = []
 debugPairs = []
@@ -170,6 +171,13 @@ def refresh_infobar(stdscr):
     for x in range(c.COLS-1):
         stdscr.addstr(lines,x," ",c.color_pair(INFO_BG))
 
+def delete_rect():
+    global rectPreviousColor #rx,ry -> x,ry -> x,y -> rx,y corners
+    if rect_y < -1 or (rect_y == cursorY+yOffset and rect_x == cursorX+xOffset):
+        
+    fieldColors[rect_y]
+
+
 def updateInfo(stdscr: c.window):
     global statusBarCurrent
     stdscr.addstr(lines,c.COLS-21,f"off x {xOffset}, y {yOffset}",c.color_pair(INFO_BG))
@@ -285,7 +293,8 @@ def main(stdscr: c.window):
     while True:
         lines = c.LINES-1
         k = stdscr.getkey()
-        stdscr.addstr(lines,c.COLS-21-7,k,c.color_pair(INFO_BG))
+        if k != "\n":
+            stdscr.addstr(lines,c.COLS-21-7,k,c.color_pair(INFO_BG))
         if k == "q" or k == "Q":
             break
         if (k in "wasd" or k in [c.KEY_UP,c.KEY_DOWN,c.KEY_LEFT,c.KEY_RIGHT]) and drawBool:
