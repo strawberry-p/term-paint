@@ -23,7 +23,7 @@ debugPairs = []
 fieldChars = [] #list[list[str]]
 fieldColors = [] #list[list[int]]
 debugPairBool = False
-debug16Pair = True
+debug16Pair = False
 drawBool = True
 unsavedContent = False
 paintColor = 1
@@ -174,7 +174,7 @@ def refresh_infobar(stdscr):
 def delete_rect():
     global rectPreviousColor #rx,ry -> x,ry -> x,y -> rx,y corners
     if rect_y < -1 or (rect_y == cursorY+yOffset and rect_x == cursorX+xOffset):
-        
+        return None
     fieldColors[rect_y]
 
 
@@ -370,8 +370,12 @@ def main(stdscr: c.window):
         stdscr.noutrefresh()
         c.doupdate()
     time.sleep(1)
-if __name__ == "__main__" or False:
+
+def package():
     c.wrapper(main)
+
+if __name__ == "__main__" or False:
+    package()
 
 if debugPairBool or debug16Pair:
     for i in range(math.floor(len(debugPairs)/2)):
