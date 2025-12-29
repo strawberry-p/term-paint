@@ -14,6 +14,15 @@ This is a CLI tool for drawing images in your terminal with keyboard controls. F
 - X to save the image under the filename provided (nameless files are saved as `unnamed.png`)
 - Q to exit the program without saving any changes
 
+## CLI options
+
+- `-n NAME`/`--filename NAME`: provides a filename to save or load the image
+- `-l`/`--load`: try to load the specified image (fails if the name was not provided or the image doesn't exist)
+- `-x`/`--width`: specify the width in pixels when creating a new image (default 88)
+- `-y`/`--height`: specify the height in pixels when creating a new image (default 31 for 88x31 images)
+- `-p`/`--pos`: display cursor position in infobar (recommended)
+- `-c`/`--change-color`: tries to use the brighter versions of terminal colors (visible colors are dependent on your theme)
+
 ## Installation
 
 From [PyPI](https://pypi.org/project/term-paint/):
